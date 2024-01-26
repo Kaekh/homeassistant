@@ -1,0 +1,605 @@
+[
+	{
+		"id": "bf190501288590cd",
+		"type": "server-state-changed",
+		"z": "d135754a0f55621d",
+		"name": "Cambio PVPC",
+		"server": "9a2126b0.6313b8",
+		"version": 5,
+		"outputs": 1,
+		"exposeAsEntityConfig": "",
+		"entityId": "sensor.esios_pvpc",
+		"entityIdType": "exact",
+		"outputInitially": false,
+		"stateType": "str",
+		"ifState": "",
+		"ifStateType": "str",
+		"ifStateOperator": "is",
+		"outputOnlyOnStateChange": true,
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"ignorePrevStateNull": false,
+		"ignorePrevStateUnknown": false,
+		"ignorePrevStateUnavailable": false,
+		"ignoreCurrentStateUnknown": false,
+		"ignoreCurrentStateUnavailable": false,
+		"outputProperties": [
+			{
+				"property": "payload",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entityState"
+			},
+			{
+				"property": "data",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "eventData"
+			},
+			{
+				"property": "topic",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "triggerId"
+			}
+		],
+		"x": 210,
+		"y": 200,
+		"wires": [
+			[
+				"55bb048bc8da1865"
+			]
+		]
+	},
+	{
+		"id": "7d6d6a2044440cb5",
+		"type": "switch",
+		"z": "d135754a0f55621d",
+		"name": "",
+		"property": "payload",
+		"propertyType": "msg",
+		"rules": [
+			{
+				"t": "eq",
+				"v": "on",
+				"vt": "str"
+			},
+			{
+				"t": "eq",
+				"v": "off",
+				"vt": "str"
+			}
+		],
+		"checkall": "true",
+		"repair": false,
+		"outputs": 2,
+		"x": 870,
+		"y": 240,
+		"wires": [
+			[
+				"526c21be302725d5"
+			],
+			[]
+		]
+	},
+	{
+		"id": "662454cef2f75594",
+		"type": "function",
+		"z": "d135754a0f55621d",
+		"name": "Calcula horas economicas",
+		"func": "const priceOffset = msg.offset;\nlet hours = []\nlet attributes = msg.payload.attributes;\nlet minPrice = attributes.min_price + priceOffset;\n\nfor(let i=0; i<24; i++){\n    let formattedNumber = (\"0\" + i).slice(-2);\n\n    hours.push({\n        hour: i,\n        price: attributes[\"price_\" + formattedNumber +\"h\"]\n    });\n}\n\nhours.sort((a,b)=>{return a.price - b.price});\n\nlet cntAM = 0;\nlet hoursAM =  hours.filter((h) => {\n    return ( h.hour < 12 && (cntAM++ < 2 || h.price <= minPrice ))\n});\n\nlet cntPM = 0;\nlet hoursPM = hours.filter((h) => {\n    return ( h.hour >= 12 && (cntPM++ < 2 ||  h.price <= minPrice ))\n});\n\nmsg = {}\nmsg.minPrice = minPrice;\nmsg.priceOffset = priceOffset;\nmsg.selectedHours = [...hoursAM, ...hoursPM];\nreturn msg;",
+		"outputs": 1,
+		"timeout": 0,
+		"noerr": 0,
+		"initialize": "",
+		"finalize": "",
+		"libs": [],
+		"x": 680,
+		"y": 300,
+		"wires": [
+			[
+				"eabfa7942baa96f9",
+				"db3270eaa3820042"
+			]
+		]
+	},
+	{
+		"id": "eabfa7942baa96f9",
+		"type": "api-current-state",
+		"z": "d135754a0f55621d",
+		"name": "Estado Autogestión",
+		"server": "9a2126b0.6313b8",
+		"version": 3,
+		"outputs": 1,
+		"halt_if": "",
+		"halt_if_type": "str",
+		"halt_if_compare": "is",
+		"entity_id": "input_boolean.termo_autogestion",
+		"state_type": "str",
+		"blockInputOverrides": false,
+		"outputProperties": [
+			{
+				"property": "payload",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entityState"
+			}
+		],
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"override_topic": false,
+		"state_location": "payload",
+		"override_payload": "msg",
+		"entity_location": "data",
+		"override_data": "msg",
+		"x": 690,
+		"y": 240,
+		"wires": [
+			[
+				"7d6d6a2044440cb5"
+			]
+		]
+	},
+	{
+		"id": "c946593727dde2de",
+		"type": "api-current-state",
+		"z": "d135754a0f55621d",
+		"name": "Precio Horas",
+		"server": "9a2126b0.6313b8",
+		"version": 3,
+		"outputs": 1,
+		"halt_if": "",
+		"halt_if_type": "str",
+		"halt_if_compare": "is",
+		"entity_id": "sensor.esios_pvpc",
+		"state_type": "str",
+		"blockInputOverrides": false,
+		"outputProperties": [
+			{
+				"property": "payload",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entity"
+			}
+		],
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"override_topic": false,
+		"state_location": "payload",
+		"override_payload": "msg",
+		"entity_location": "data",
+		"override_data": "msg",
+		"x": 410,
+		"y": 300,
+		"wires": [
+			[
+				"662454cef2f75594"
+			]
+		]
+	},
+	{
+		"id": "8dd1249501fc1c4e",
+		"type": "inject",
+		"z": "d135754a0f55621d",
+		"name": "",
+		"props": [
+			{
+				"p": "payload"
+			},
+			{
+				"p": "topic",
+				"vt": "str"
+			}
+		],
+		"repeat": "",
+		"crontab": "",
+		"once": false,
+		"onceDelay": 0.1,
+		"topic": "",
+		"payload": "",
+		"payloadType": "date",
+		"x": 220,
+		"y": 260,
+		"wires": [
+			[
+				"98455683af1a06b8"
+			]
+		]
+	},
+	{
+		"id": "98455683af1a06b8",
+		"type": "api-current-state",
+		"z": "d135754a0f55621d",
+		"name": "Tolerancia precio",
+		"server": "9a2126b0.6313b8",
+		"version": 3,
+		"outputs": 1,
+		"halt_if": "",
+		"halt_if_type": "str",
+		"halt_if_compare": "is",
+		"entity_id": "input_number.tolerancia_precio_kwh",
+		"state_type": "num",
+		"blockInputOverrides": false,
+		"outputProperties": [
+			{
+				"property": "offset",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entityState"
+			}
+		],
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"override_topic": false,
+		"state_location": "payload",
+		"override_payload": "msg",
+		"entity_location": "data",
+		"override_data": "msg",
+		"x": 430,
+		"y": 240,
+		"wires": [
+			[
+				"c946593727dde2de"
+			]
+		]
+	},
+	{
+		"id": "55bb048bc8da1865",
+		"type": "delay",
+		"z": "d135754a0f55621d",
+		"name": "",
+		"pauseType": "delay",
+		"timeout": "30",
+		"timeoutUnits": "seconds",
+		"rate": "1",
+		"nbRateUnits": "1",
+		"rateUnits": "second",
+		"randomFirst": "1",
+		"randomLast": "5",
+		"randomUnits": "seconds",
+		"drop": false,
+		"allowrate": false,
+		"outputs": 1,
+		"x": 420,
+		"y": 180,
+		"wires": [
+			[
+				"98455683af1a06b8"
+			]
+		]
+	},
+	{
+		"id": "526c21be302725d5",
+		"type": "function",
+		"z": "d135754a0f55621d",
+		"name": "Es hora economica",
+		"func": "let date = new Date();\nlet currentHour = date.getHours();\nlet hours = msg.selectedHours;\n\nlet found = hours.some((h)=> {return (h.hour == currentHour)});\n\nmsg = {}\nmsg.payload = found.toString();\nreturn msg;",
+		"outputs": 1,
+		"timeout": 0,
+		"noerr": 0,
+		"initialize": "",
+		"finalize": "",
+		"libs": [],
+		"x": 1050,
+		"y": 220,
+		"wires": [
+			[
+				"8214b56e818b43de",
+				"9cb0afc6027358ed"
+			]
+		]
+	},
+	{
+		"id": "8214b56e818b43de",
+		"type": "switch",
+		"z": "d135754a0f55621d",
+		"name": "",
+		"property": "payload",
+		"propertyType": "msg",
+		"rules": [
+			{
+				"t": "eq",
+				"v": "true",
+				"vt": "str"
+			},
+			{
+				"t": "eq",
+				"v": "false",
+				"vt": "str"
+			}
+		],
+		"checkall": "true",
+		"repair": false,
+		"outputs": 2,
+		"x": 930,
+		"y": 360,
+		"wires": [
+			[
+				"fbd3f6525cb460f1",
+				"edd81796e793bf50"
+			],
+			[
+				"c753b08b1a288af7",
+				"edd81796e793bf50"
+			]
+		]
+	},
+	{
+		"id": "9cb0afc6027358ed",
+		"type": "debug",
+		"z": "d135754a0f55621d",
+		"name": "es hora eco",
+		"active": true,
+		"tosidebar": true,
+		"console": false,
+		"tostatus": false,
+		"complete": "true",
+		"targetType": "full",
+		"statusVal": "",
+		"statusType": "auto",
+		"x": 1070,
+		"y": 180,
+		"wires": []
+	},
+	{
+		"id": "db3270eaa3820042",
+		"type": "debug",
+		"z": "d135754a0f55621d",
+		"name": "Horas seleccionas",
+		"active": true,
+		"tosidebar": true,
+		"console": false,
+		"tostatus": false,
+		"complete": "true",
+		"targetType": "full",
+		"statusVal": "",
+		"statusType": "auto",
+		"x": 690,
+		"y": 340,
+		"wires": []
+	},
+	{
+		"id": "02947f64db5c4ce9",
+		"type": "comment",
+		"z": "d135754a0f55621d",
+		"name": "Autogestión del termo segun el precio de la electricidad",
+		"info": "Cada vez que cambia el PVPC (cada hora), \nse calcula el precio que estamos dispuestos\na pagar (precio_minimo + tolerancia) y\nselecciona las horas que cumplen esta condición.\n\nSi el termo esta en autogestión y estamos\nen una hora economica encendemos el termo.\n\nSi la hora no es economica lo apagamos.",
+		"x": 340,
+		"y": 120,
+		"wires": []
+	},
+	{
+		"id": "84fe820b8887747b",
+		"type": "api-call-service",
+		"z": "d135754a0f55621d",
+		"name": "Encender termo",
+		"server": "9a2126b0.6313b8",
+		"version": 5,
+		"debugenabled": false,
+		"domain": "switch",
+		"service": "turn_on",
+		"areaId": [],
+		"deviceId": [
+			"c8bd171f57716bfae98fd68bcc7cbcde"
+		],
+		"entityId": [],
+		"data": "",
+		"dataType": "jsonata",
+		"mergeContext": "",
+		"mustacheAltTags": false,
+		"outputProperties": [],
+		"queue": "none",
+		"x": 1360,
+		"y": 280,
+		"wires": [
+			[]
+		]
+	},
+	{
+		"id": "8477d9c5b96b2886",
+		"type": "api-call-service",
+		"z": "d135754a0f55621d",
+		"name": "Apagar termo",
+		"server": "9a2126b0.6313b8",
+		"version": 5,
+		"debugenabled": false,
+		"domain": "switch",
+		"service": "turn_off",
+		"areaId": [],
+		"deviceId": [
+			"c8bd171f57716bfae98fd68bcc7cbcde"
+		],
+		"entityId": [],
+		"data": "",
+		"dataType": "jsonata",
+		"mergeContext": "",
+		"mustacheAltTags": false,
+		"outputProperties": [],
+		"queue": "none",
+		"x": 1360,
+		"y": 400,
+		"wires": [
+			[]
+		]
+	},
+	{
+		"id": "fbd3f6525cb460f1",
+		"type": "api-current-state",
+		"z": "d135754a0f55621d",
+		"name": "Termo apagado?",
+		"server": "9a2126b0.6313b8",
+		"version": 3,
+		"outputs": 2,
+		"halt_if": "off",
+		"halt_if_type": "str",
+		"halt_if_compare": "is",
+		"entity_id": "switch.0x54ef441000810fb8",
+		"state_type": "str",
+		"blockInputOverrides": false,
+		"outputProperties": [
+			{
+				"property": "payload",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entityState"
+			},
+			{
+				"property": "data",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entity"
+			}
+		],
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"override_topic": false,
+		"state_location": "payload",
+		"override_payload": "msg",
+		"entity_location": "data",
+		"override_data": "msg",
+		"x": 1150,
+		"y": 300,
+		"wires": [
+			[
+				"84fe820b8887747b"
+			],
+			[]
+		]
+	},
+	{
+		"id": "c753b08b1a288af7",
+		"type": "api-current-state",
+		"z": "d135754a0f55621d",
+		"name": "Termo encendido?",
+		"server": "9a2126b0.6313b8",
+		"version": 3,
+		"outputs": 2,
+		"halt_if": "on",
+		"halt_if_type": "str",
+		"halt_if_compare": "is",
+		"entity_id": "switch.0x54ef441000810fb8",
+		"state_type": "str",
+		"blockInputOverrides": false,
+		"outputProperties": [
+			{
+				"property": "payload",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entityState"
+			},
+			{
+				"property": "data",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entity"
+			}
+		],
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"override_topic": false,
+		"state_location": "payload",
+		"override_payload": "msg",
+		"entity_location": "data",
+		"override_data": "msg",
+		"x": 1150,
+		"y": 420,
+		"wires": [
+			[
+				"8477d9c5b96b2886"
+			],
+			[]
+		]
+	},
+	{
+		"id": "edd81796e793bf50",
+		"type": "api-current-state",
+		"z": "d135754a0f55621d",
+		"name": "auto apagado?",
+		"server": "9a2126b0.6313b8",
+		"version": 3,
+		"outputs": 2,
+		"halt_if": "on",
+		"halt_if_type": "str",
+		"halt_if_compare": "is",
+		"entity_id": "switch.0x54ef441000810fb8_auto_off",
+		"state_type": "str",
+		"blockInputOverrides": false,
+		"outputProperties": [
+			{
+				"property": "payload",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entityState"
+			},
+			{
+				"property": "data",
+				"propertyType": "msg",
+				"value": "",
+				"valueType": "entity"
+			}
+		],
+		"for": "0",
+		"forType": "num",
+		"forUnits": "minutes",
+		"override_topic": false,
+		"state_location": "payload",
+		"override_payload": "msg",
+		"entity_location": "data",
+		"override_data": "msg",
+		"x": 1140,
+		"y": 360,
+		"wires": [
+			[
+				"d7e7935163a4ec17"
+			],
+			[]
+		]
+	},
+	{
+		"id": "d7e7935163a4ec17",
+		"type": "api-call-service",
+		"z": "d135754a0f55621d",
+		"name": "Desactivar autoOFF",
+		"server": "9a2126b0.6313b8",
+		"version": 5,
+		"debugenabled": false,
+		"domain": "switch",
+		"service": "turn_off",
+		"areaId": [],
+		"deviceId": [],
+		"entityId": [
+			"switch.0x54ef441000810fb8_auto_off"
+		],
+		"data": "",
+		"dataType": "jsonata",
+		"mergeContext": "",
+		"mustacheAltTags": false,
+		"outputProperties": [],
+		"queue": "none",
+		"x": 1380,
+		"y": 340,
+		"wires": [
+			[]
+		]
+	},
+	{
+		"id": "9a2126b0.6313b8",
+		"type": "server",
+		"name": "Home Assistant",
+		"addon": true,
+		"rejectUnauthorizedCerts": true,
+		"ha_boolean": "",
+		"connectionDelay": false,
+		"cacheJson": false,
+		"heartbeat": false,
+		"heartbeatInterval": "",
+		"statusSeparator": "",
+		"enableGlobalContextStore": false
+	}
+]
